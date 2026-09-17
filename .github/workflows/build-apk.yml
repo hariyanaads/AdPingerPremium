@@ -2,8 +2,7 @@ name: Build APK
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -18,13 +17,8 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - uses: android-actions/setup-android@v3
-
-      - name: Accept Licenses
-        run: yes | sdkmanager --licenses || true
-
-      - name: Make Gradle Executable
-        run: chmod +x gradlew
+      - name: Grant execute permission
+        run: chmod +x gradlew || true
 
       - name: Build APK
         run: ./gradlew assembleDebug --stacktrace
