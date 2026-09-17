@@ -15,7 +15,7 @@ import java.util.*;
 import java.util.concurrent.Executors;
 
 public class MainActivity extends Activity {
-    private EditText githubUrl;
+    private TextView githubUrl;
     private TextView status, logView, currentUrl, deviceMode;
     private WebView webView;
     private static final long WEBVIEW_REFRESH_MS = 5 * 60 * 1000L;
