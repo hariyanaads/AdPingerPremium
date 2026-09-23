@@ -102,6 +102,37 @@ public class PingerService extends Service {
             return START_NOT_STICKY;
         }
 
+        try {
+            ExpiryConfig.Result license = ExpiryConfig.fetch();
+            IntegrityGuard.Result integrity = IntegrityGuard.verify(this, license);
+            if (!integrity.valid) {
+                writeLog("SERVICE BLOCKED: INTEGRITY " + integrity.message);
+                updateNotification(integrity.message);
+                getSharedPreferences(PREF, MODE_PRIVATE).edit()
+                        .putBoolean("enabled", false).remove(PENDING_URL).apply();
+                stopForeground(true);
+                stopSelf();
+                return START_NOT_STICKY;
+            }
+            if (!license.enabled || license.expired) {
+                writeLog("SERVICE BLOCKED: LICENSE EXPIRED");
+                updateNotification(license.message);
+                getSharedPreferences(PREF, MODE_PRIVATE).edit()
+                        .putBoolean("enabled", false).remove(PENDING_URL).apply();
+                stopForeground(true);
+                stopSelf();
+                return START_NOT_STICKY;
+            }
+        } catch (Exception e) {
+            writeLog("SERVICE BLOCKED: LICENSE CHECK FAILED " + e.getMessage());
+            updateNotification("Lisensi tidak dapat diverifikasi");
+            getSharedPreferences(PREF, MODE_PRIVATE).edit()
+                    .putBoolean("enabled", false).remove(PENDING_URL).apply();
+            stopForeground(true);
+            stopSelf();
+            return START_NOT_STICKY;
+        }
+
         int minutes = 5;
         getSharedPreferences(PREF, MODE_PRIVATE).edit().putInt("interval", 5).apply();
         running = true;
@@ -137,6 +168,42 @@ public class PingerService extends Service {
 
     private void pickAndOpenUrl() {
         if (!running) return;
+        try {
+            ExpiryConfig.Result license = ExpiryConfig.fetch();
+            IntegrityGuard.Result integrity = IntegrityGuard.verify(this, license);
+            if (!integrity.valid) {
+                writeLog("AUTO STOP: INTEGRITY " + integrity.message);
+                running = false;
+                stopScheduler();
+                getSharedPreferences(PREF, MODE_PRIVATE).edit()
+                        .putBoolean("enabled", false).remove(PENDING_URL).apply();
+                updateNotification(integrity.message);
+                stopForeground(true);
+                stopSelf();
+                return;
+            }
+            if (!license.enabled || license.expired) {
+                writeLog("AUTO STOP: LICENSE EXPIRED");
+                running = false;
+                stopScheduler();
+                getSharedPreferences(PREF, MODE_PRIVATE).edit()
+                        .putBoolean("enabled", false).remove(PENDING_URL).apply();
+                updateNotification(license.message);
+                stopForeground(true);
+                stopSelf();
+                return;
+            }
+        } catch (Exception e) {
+            writeLog("AUTO STOP: LICENSE CHECK FAILED " + e.getMessage());
+            running = false;
+            stopScheduler();
+            getSharedPreferences(PREF, MODE_PRIVATE).edit()
+                    .putBoolean("enabled", false).remove(PENDING_URL).apply();
+            updateNotification("Lisensi tidak dapat diverifikasi");
+            stopForeground(true);
+            stopSelf();
+            return;
+        }
         try {
             String raw = RemoteConfigStore.getUrl(this);
             List<String> urls = RemoteUrlConfig.fetch(raw);

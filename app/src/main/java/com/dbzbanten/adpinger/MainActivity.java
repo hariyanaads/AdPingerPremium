@@ -30,6 +30,8 @@ public class MainActivity extends Activity {
         }
     };
     private BroadcastReceiver urlReceiver;
+    private volatile boolean licenseValid = false;
+    private volatile boolean checkingLicense = false;
 
     @Override public void onCreate(Bundle b) {
         super.onCreate(b);
@@ -55,10 +57,12 @@ public class MainActivity extends Activity {
         refreshHandler.postDelayed(refreshRunnable, WEBVIEW_REFRESH_MS);
 
         findViewById(R.id.saveRefresh).setOnClickListener(v -> refreshRemote());
-        findViewById(R.id.start).setOnClickListener(v -> startPinger());
+        findViewById(R.id.start).setOnClickListener(v -> { if (requireLicense()) startPinger(); });
         findViewById(R.id.stop).setOnClickListener(v -> stopPinger());
         findViewById(R.id.showLog).setOnClickListener(v -> loadLog());
-        findViewById(R.id.randomUrl).setOnClickListener(v -> showRandomUrl());
+        findViewById(R.id.randomUrl).setOnClickListener(v -> { if (requireLicense()) showRandomUrl(); });
+
+        checkLicense(true);
 
         urlReceiver = new BroadcastReceiver() {
             @Override public void onReceive(Context context, Intent intent) {
@@ -147,6 +151,40 @@ public class MainActivity extends Activity {
         });
     }
 
+    private boolean requireLicense() {
+        if (licenseValid) return true;
+        status.setText("Memeriksa masa berlaku dari server...");
+        checkLicense(true);
+        return false;
+    }
+
+    private void checkLicense(boolean showStatus) {
+        if (checkingLicense) return;
+        checkingLicense = true;
+        if (showStatus) status.setText("Memeriksa masa berlaku dari GitHub...");
+        Executors.newSingleThreadExecutor().execute(() -> {
+            try {
+                ExpiryConfig.Result r = ExpiryConfig.fetch();
+                IntegrityGuard.Result integrity = IntegrityGuard.verify(this, r);
+                licenseValid = r.enabled && !r.expired && integrity.valid;
+                runOnUiThread(() -> {
+                    if (licenseValid) {
+                        status.setText("Lisensi aktif — " + r.statusText());
+                    } else {
+                        String msg = integrity.valid ? r.message : integrity.message;
+                        status.setText(msg);
+                        Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
+                    }
+                });
+            } catch (Exception e) {
+                licenseValid = false;
+                runOnUiThread(() -> status.setText("Lisensi tidak dapat diverifikasi: " + e.getMessage()));
+            } finally {
+                checkingLicense = false;
+            }
+        });
+    }
+
     private void refreshRemote() {
         final String u = githubUrl.getText().toString().trim();
         if (u.isEmpty()) { status.setText("Masukkan URL Raw GitHub"); return; }
@@ -163,6 +201,7 @@ public class MainActivity extends Activity {
     }
 
     private void startPinger() {
+        if (!licenseValid) { checkLicense(true); return; }
         getSharedPreferences("adpinger",0).edit().putInt("interval", 5).apply();
         Intent i = new Intent(this, PingerService.class).setAction("START");
         if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(i); else startService(i);
@@ -180,6 +219,7 @@ public class MainActivity extends Activity {
     }
 
     private void showRandomUrl() {
+        if (!licenseValid) { checkLicense(true); return; }
         Executors.newSingleThreadExecutor().execute(() -> {
             try {
                 List<String> urls = RemoteUrlConfig.fetch(RemoteConfigStore.getUrl(this));

@@ -1,0 +1,8 @@
+{
+  "enabled": true,
+  "expires_at": "2026-12-31T23:59:59Z",
+  "package_name": "com.dbzbanten.adpinger",
+  "min_version_code": 1,
+  "signature_sha256": "",
+  "message": "Masa berlaku aplikasi telah berakhir. Silakan perbarui lisensi."
+}

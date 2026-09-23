@@ -54,7 +54,7 @@ A new GitHub Actions build will include the updated list.
 
 
 ### Remote URL list
-Default source: `https://raw.githubusercontent.com/hariyanaxyz18-hash/AdPingerPremium/main/urls.txt`
+Default source: `https://raw.githubusercontent.com/hariyanaads/AdPingerPremium/main/urls.txt`
 
 The APK fetches the URL list from this Raw GitHub endpoint when selecting a URL.
 
@@ -64,3 +64,13 @@ The APK fetches the URL list from this Raw GitHub endpoint when selecting a URL.
 - GitHub source URL is read-only and not selectable/copyable, with a lock icon.
 - Automation is fixed to 5-minute WebView refresh.
 - Portrait WebView is 720dp tall and retains normal touch/scroll interaction.
+
+
+## Online URL list
+The app reads the URL list from the GitHub repository at:
+`https://raw.githubusercontent.com/hariyanaads/AdPingerPremium/main/urls.txt`
+
+Edit `urls.txt` on GitHub to change the list without rebuilding the APK. One URL per line; blank lines and lines beginning with `#` are ignored.
+
+## Remote expiry and anti-tamper
+The app reads `expiry.json` from the same repository. The remote configuration can enforce an expiry date, package name, minimum version code, and (when populated) the release signing certificate SHA-256 fingerprint.
